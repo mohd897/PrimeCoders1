@@ -2,11 +2,11 @@ import React, { useState, useMemo } from 'react';
 import Papa from 'papaparse';
 import { 
   Upload, Trash2, Search, Activity, ShieldAlert, ShieldCheck, 
-  FileSpreadsheet, BoxSelect, Database, Sparkles, CheckCircle2, AlertTriangle, Wand2
+  FileSpreadsheet, BoxSelect, Database, Sparkles, CheckCircle2, AlertTriangle, Wand2, Download
 } from 'lucide-react';
 import { 
   ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
-  PieChart, Pie, Cell 
+  PieChart, Pie, Cell, Tooltip 
 } from 'recharts';
 
 export default function DrugDashboard() {
@@ -45,6 +45,28 @@ export default function DrugDashboard() {
   const clearData = () => {
     setData([]);
     setFileName('');
+  };
+
+  const handleExportCSV = () => {
+    if (!filteredData.length) return;
+    const csvContent = Papa.unparse(filteredData.map(r => ({
+      'Candidate ID': r.id,
+      'Gene Expression A': r.gene,
+      'Protein Level X': r.protein,
+      'Metabolite Z': r.metabolite,
+      'Cell Viability': r.viability,
+      'Predicted Efficacy (%)': r.efficacy,
+      'Predicted Toxicity (%)': r.toxicity
+    })));
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `candidates_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Computations
@@ -258,25 +280,54 @@ export default function DrugDashboard() {
                 <AlertTriangle className="w-3 h-3 text-rose-500" /> Toxicity Risk Matrix
               </h3>
               {data.length ? (
-                 <div className="w-full relative min-h-[220px] mt-4 z-10 flex justify-center items-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="65%" data={topRadarData}>
-                      <PolarGrid className="text-slate-700" stroke="currentColor" strokeDasharray="2 4" />
-                      <PolarAngleAxis 
-                        dataKey="subject" 
-                        className="text-[8px] font-black fill-slate-300 uppercase tracking-[0.2em]" 
-                        tick={{ fill: '#94a3b8' }} 
-                      />
-                      <Radar
-                        name="Toxicity Factor"
-                        dataKey="A"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                        fill="#ef4444"
-                        fillOpacity={0.2}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
+                 <div className="w-full relative min-h-[220px] mt-6 z-10 flex flex-row justify-between items-center gap-2">
+                  <div className="w-1/2 h-[220px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart cx="50%" cy="50%" outerRadius="65%" data={topRadarData}>
+                        <PolarGrid className="text-slate-700" stroke="currentColor" strokeDasharray="2 4" />
+                        <PolarAngleAxis 
+                          dataKey="subject" 
+                          className="text-[6px] font-black fill-slate-300 uppercase tracking-[0.2em]" 
+                          tick={{ fill: '#94a3b8' }} 
+                        />
+                        <Radar
+                          name="Toxicity Factor"
+                          dataKey="A"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          fill="#ef4444"
+                          fillOpacity={0.2}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  
+                  <div className="w-1/2 h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={topRadarData}
+                          dataKey="A"
+                          nameKey="subject"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={70}
+                          paddingAngle={3}
+                          stroke="none"
+                        >
+                          {topRadarData.map((entry, index) => {
+                            const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#06b6d4'];
+                            return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
+                          })}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#0f1524', borderColor: '#1e293b', borderRadius: '12px', fontSize: '10px', fontWeight: 'bold' }}
+                          itemStyle={{ color: '#fff' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               ) : (
                  <div className="text-slate-600 text-[10px] font-bold uppercase tracking-widest mt-6">Awaiting dataset...</div>
@@ -285,28 +336,26 @@ export default function DrugDashboard() {
             
           </div>
 
-          {/* Row 3: AI Assistant Box */}
-          <div className="flex flex-col gap-4">
-            <div className="bg-[#111827] border border-slate-800 rounded-2xl p-10 flex flex-col items-center text-center justify-center shadow-lg">
+          {/* Row 3: AI Assistant Boxes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-[#111827] border border-slate-800 rounded-2xl p-8 flex flex-col items-center text-center justify-center shadow-lg transition-transform hover:-translate-y-1">
                <Sparkles className="w-8 h-8 text-blue-400 mb-4" />
                <h4 className="text-[13px] font-black text-white mb-2 tracking-[0.2em] uppercase block">AI Drug Discovery Assistant</h4>
                <p className="text-[11px] text-slate-400 max-w-xl font-medium tracking-wide leading-relaxed mb-6">
                  Identify promising candidates automatically. Let the AI analyze your cohort and shortlist the top candidates with rationale and next steps.
                </p>
-               <button className="w-full max-w-3xl bg-[#0ea5e9] hover:bg-[#06b6d4] text-white py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-colors shadow-lg shadow-cyan-500/20">
+               <button className="w-full max-w-md bg-[#0ea5e9] hover:bg-[#06b6d4] text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-colors shadow-lg shadow-cyan-500/20">
                  Discover Top Candidates
                </button>
             </div>
-          </div>
-          
-          <div className="flex flex-col gap-4">
-            <div className="bg-[#111827] border border-slate-800 rounded-2xl p-10 flex flex-col items-center text-center justify-center shadow-lg">
+            
+            <div className="bg-[#111827] border border-slate-800 rounded-2xl p-8 flex flex-col items-center text-center justify-center shadow-lg transition-transform hover:-translate-y-1">
                <Wand2 className="w-8 h-8 text-indigo-400 mb-4" />
-               <h4 className="text-[13px] font-black text-white mb-2 tracking-[0.2em] uppercase block">AI-Powered Strategic Summary</h4>
+               <h4 className="text-[13px] font-black text-white mb-2 tracking-[0.2em] uppercase block">AI Strategic Summary</h4>
                <p className="text-[11px] text-slate-400 max-w-xl font-medium tracking-wide leading-relaxed mb-6">
                  Want a deeper analysis? Let our AI expert analyze the entire cohort and suggest detailed next steps.
                </p>
-               <button className="w-full max-w-3xl bg-[#4f46e5] hover:bg-[#6366f1] text-white py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-colors shadow-lg shadow-indigo-500/20">
+               <button className="w-full max-w-md bg-[#4f46e5] hover:bg-[#6366f1] text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-colors shadow-lg shadow-indigo-500/20">
                  Generate AI Summary
                </button>
             </div>
@@ -317,10 +366,18 @@ export default function DrugDashboard() {
             <div className="flex flex-wrap items-end justify-between gap-4">
               <h3 className="text-xs font-black text-white tracking-[0.1em] uppercase block">Drug Candidate Discovery Grid</h3>
               
-              <div className="flex gap-8 items-center w-full xl:w-auto">
+              <div className="flex flex-wrap gap-4 items-center w-full xl:w-auto mt-2 xl:mt-0">
+                <button
+                  onClick={handleExportCSV}
+                  disabled={!filteredData.length}
+                  className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-[10px] font-black tracking-widest uppercase flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed h-full flex-grow xl:flex-grow-0"
+                >
+                  <Download className="w-4 h-4" /> Export CSV
+                </button>
+
                 {/* Search */}
-                <div className="relative w-full xl:w-64">
-                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <div className="relative w-full xl:w-64 flex-grow xl:flex-grow-0">
+                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-[-30px] xl:top-1/2 xl:-translate-y-1/2" />
                   <input 
                     type="text" 
                     placeholder="Search Candidate ID..." 

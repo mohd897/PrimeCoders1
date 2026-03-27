@@ -3,6 +3,7 @@ import axios from 'axios';
 import InputForm from './components/InputForm';
 import ResultDisplay from './components/ResultDisplay';
 import DrugDashboard from './components/DrugDashboard';
+import ChatBot from './components/ChatBot';
 
 function App() {
   const [activeTab, setActiveTab] = useState('clinical');
@@ -115,10 +116,127 @@ function App() {
                    
                    <div className="flex flex-col relative z-10">
                      <span className="text-[8px] sm:text-[9px] text-indigo-300/80 uppercase font-black tracking-widest mb-1">Condition</span>
-                     <span className="text-emerald-400 font-bold capitalize tracking-wide mt-0.5 text-[11px] sm:text-xs">{formData?.problem || 'None'}</span>
-                   </div>
-                </div>
+                      <span className="text-emerald-400 font-bold capitalize tracking-wide mt-0.5 text-[11px] sm:text-xs">{formData?.problem || 'None'}</span>
+                    </div>
+                 </div>
               </div>
+
+              {/* Outcome Summary Card */}
+              {result && (() => {
+                const safeRec = result.risk >= 85 ? { label: 'EMERGENCY', color: 'text-rose-500', bg: 'bg-rose-500/10' } :
+                                result.risk >= 60 ? { label: 'CRITICAL', color: 'text-rose-400', bg: 'bg-rose-500/10' } :
+                                result.risk >= 30 ? { label: 'CAUTION', color: 'text-amber-400', bg: 'bg-amber-500/10' } :
+                                                    { label: 'SAFE', color: 'text-emerald-400', bg: 'bg-emerald-500/10' };
+                                                    
+                const recProb = result.benefit >= 70 ? 'High' : result.benefit >= 40 ? 'Medium' : 'Low';
+                const sevLevel = result.risk >= 75 ? 'Critical' : result.risk >= 40 ? 'Moderate' : 'Mild';
+                const riskLevel = result.risk >= 80 ? 'High' : result.risk >= 50 ? 'Medium' : 'Low';
+                
+                const projectedSeverity = Math.min(100, Math.round(result.risk * 1.3) + 10);
+                const projectionText = result.risk >= 95 
+                  ? "Condition is already at peak severity; immediate action required."
+                  : `If untreated, severity may increase to ${projectedSeverity}% in 3-5 days.`;
+                
+                const currentHealth = (formData?.health || 'average').toLowerCase();
+                const currentAge = parseInt(formData?.age || 30);
+                
+                let cfHealth = null;
+                if (currentHealth === 'poor' || currentHealth === 'average') {
+                  cfHealth = { condition: "Health were Good", recBonus: currentHealth === 'poor' ? 24 : 12, riskDrop: currentHealth === 'poor' ? 18 : 8 };
+                } else if (currentHealth === 'good') {
+                  cfHealth = { condition: "Health were Excellent", recBonus: 7, riskDrop: 5 };
+                }
+                
+                let cfAge = null;
+                if (currentAge > 40) {
+                  cfAge = { condition: `Age were ${currentAge - 15}`, recBonus: Math.round((currentAge - 25) * 0.4), riskDrop: Math.round((currentAge - 25) * 0.3) };
+                } else if (currentAge >= 30) {
+                  cfAge = { condition: "Age were 20", recBonus: 7, riskDrop: 4 };
+                }
+                
+                return (
+                  <>
+                  <div className="mt-5 p-4 rounded-2xl border border-slate-700/60 bg-[#0f1524] shadow-md relative overflow-hidden transition-all hover:border-slate-600">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500/50"></div>
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <svg className="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Outcome Summary
+                      </span>
+                      <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${safeRec.color} ${safeRec.bg}`}>
+                        {safeRec.label}
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-[#111827] rounded-xl p-2.5 border border-slate-800 flex flex-col justify-center">
+                        <div className="text-[8px] text-slate-500 uppercase font-black tracking-widest mb-1">Recovery</div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-sm font-black text-white leading-none">{result.benefit}%</span>
+                          <span className="text-[8px] font-bold text-slate-400 leading-none">{recProb}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-[#111827] rounded-xl p-2.5 border border-slate-800 flex flex-col justify-center">
+                        <div className="text-[8px] text-slate-500 uppercase font-black tracking-widest mb-1">Severity</div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-sm font-black text-rose-400 leading-none">{result.risk}%</span>
+                          <span className="text-[8px] font-bold text-slate-400 leading-none">{sevLevel}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-[#111827] rounded-xl p-2.5 border border-slate-800 flex flex-col justify-center">
+                        <div className="text-[8px] text-slate-500 uppercase font-black tracking-widest mb-1">Risk Lvl</div>
+                        <span className={`text-[11px] font-black leading-none mt-1 ${riskLevel === 'High' ? 'text-rose-400' : riskLevel === 'Medium' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                          {riskLevel}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-slate-700/50 flex items-start gap-2 opacity-90">
+                      <svg className="w-3 h-3 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                      <span className="text-[10px] text-slate-300 font-medium leading-relaxed tracking-wide">
+                        <span className="text-amber-500 font-bold uppercase tracking-widest mr-1.5">Projection:</span>
+                        {projectionText}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Counterfactual Engine */}
+                  <div className="mt-4 p-4 rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.03] shadow-md relative overflow-hidden transition-all hover:border-indigo-500/40 hover:bg-indigo-500/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-sm border border-indigo-500/20 rounded-lg p-1 bg-indigo-500/10">🧠</span>
+                      <span className="text-[10px] font-black text-indigo-300 uppercase tracking-[0.15em] drop-shadow-sm">Counterfactual Engine</span>
+                    </div>
+                    
+                    <div className="space-y-2">
+                       {cfHealth && (
+                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-bold tracking-wide text-slate-300 bg-[#0a0f1c] px-3 py-2.5 rounded-xl border border-indigo-500/10 shadow-inner group transition-colors hover:border-indigo-500/30">
+                           <span className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                             If <span className="text-white">{(cfHealth.condition)}</span>
+                           </span>
+                           <span className="flex gap-2 sm:gap-3">
+                             <span className="text-emerald-400">Recovery +{cfHealth.recBonus}%</span>
+                             <span className="text-rose-400">Risk -{cfHealth.riskDrop}%</span>
+                           </span>
+                         </div>
+                       )}
+                       {cfAge && cfAge.recBonus > 0 && (
+                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-bold tracking-wide text-slate-300 bg-[#0a0f1c] px-3 py-2.5 rounded-xl border border-indigo-500/10 shadow-inner group transition-colors hover:border-indigo-500/30">
+                           <span className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                             If <span className="text-white">{(cfAge.condition)}</span>
+                           </span>
+                           <span className="flex gap-2 sm:gap-3">
+                             <span className="text-emerald-400">Recovery +{cfAge.recBonus}%</span>
+                             <span className="text-rose-400">Risk -{cfAge.riskDrop}%</span>
+                           </span>
+                         </div>
+                       )}
+                    </div>
+                  </div>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Right Side: Results (Visually dominant) */}
@@ -128,6 +246,7 @@ function App() {
           </div>
         )}
       </div>
+      <ChatBot />
     </div>
   );
 }
