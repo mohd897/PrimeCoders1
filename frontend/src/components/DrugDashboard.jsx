@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import Papa from 'papaparse';
+import axios from 'axios';
 import { 
   Upload, Trash2, Search, Activity, ShieldAlert, ShieldCheck, 
   FileSpreadsheet, BoxSelect, Database, Sparkles, CheckCircle2, AlertTriangle, Wand2, Download
 } from 'lucide-react';
 import { 
   ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
-  PieChart, Pie, Cell, Tooltip 
+  PieChart, Pie, Cell, Tooltip, Legend
 } from 'recharts';
 
 export default function DrugDashboard() {
@@ -15,6 +16,35 @@ export default function DrugDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [minEfficacy, setMinEfficacy] = useState(0);
   const [maxToxicity, setMaxToxicity] = useState(100);
+
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiReport, setAiReport] = useState(null);
+
+  const handleAiAction = async (type) => {
+    if (!filteredData.length) return;
+    setAiLoading(true);
+    setAiReport(null);
+    try {
+      const promptType = type === 'discovery_assistant' 
+        ? "Analyze the following JSON candidate data. Identify the top 2-3 most promising candidates based on explicitly high predicted efficacy and low predicted toxicity. Output a markdown list showing 'Top Candidates', why you chose them, and 'Next Steps'. Data: " 
+        : "Provide a comprehensive strategic summary of the attached candidate cohort. Focus on trends, risk factors, outliers, and give a strategic recommendation. Data: ";
+
+      const { data } = await axios.post('http://localhost:5001/api/chat', {
+        message: promptType + JSON.stringify(filteredData.slice(0, 30)),
+        history: []
+      });
+      
+      setAiReport({
+        title: type === 'discovery_assistant' ? 'AI Drug Discovery Analysis' : 'AI Strategic Summary Lead',
+        content: data.reply || data.error
+      });
+    } catch (e) {
+      console.error(e);
+      setAiReport({ title: 'AI Error', content: 'Connection to AI failed. Please verify backend state.' });
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -36,6 +66,9 @@ export default function DrugDashboard() {
           })).filter(r => !isNaN(r.efficacy) && !isNaN(r.toxicity));
           
           setData(parsed);
+          try {
+             localStorage.setItem('omniCsvData', JSON.stringify(parsed));
+          } catch(e) { console.warn("Local storage array too large"); }
         },
         error: () => alert("Failed to parse CSV")
       });
@@ -45,6 +78,7 @@ export default function DrugDashboard() {
   const clearData = () => {
     setData([]);
     setFileName('');
+    localStorage.removeItem('omniCsvData');
   };
 
   const handleExportCSV = () => {
@@ -280,29 +314,8 @@ export default function DrugDashboard() {
                 <AlertTriangle className="w-3 h-3 text-rose-500" /> Toxicity Risk Matrix
               </h3>
               {data.length ? (
-                 <div className="w-full relative min-h-[220px] mt-6 z-10 flex flex-row justify-between items-center gap-2">
-                  <div className="w-1/2 h-[220px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart cx="50%" cy="50%" outerRadius="65%" data={topRadarData}>
-                        <PolarGrid className="text-slate-700" stroke="currentColor" strokeDasharray="2 4" />
-                        <PolarAngleAxis 
-                          dataKey="subject" 
-                          className="text-[6px] font-black fill-slate-300 uppercase tracking-[0.2em]" 
-                          tick={{ fill: '#94a3b8' }} 
-                        />
-                        <Radar
-                          name="Toxicity Factor"
-                          dataKey="A"
-                          stroke="#ef4444"
-                          strokeWidth={2}
-                          fill="#ef4444"
-                          fillOpacity={0.2}
-                        />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  
-                  <div className="w-1/2 h-[200px]">
+                 <div className="w-full relative min-h-[220px] mt-4 z-10 flex flex-col justify-center items-center">
+                  <div className="w-full h-[220px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -310,10 +323,10 @@ export default function DrugDashboard() {
                           dataKey="A"
                           nameKey="subject"
                           cx="50%"
-                          cy="50%"
-                          innerRadius={40}
-                          outerRadius={70}
-                          paddingAngle={3}
+                          cy="45%"
+                          innerRadius={55}
+                          outerRadius={85}
+                          paddingAngle={4}
                           stroke="none"
                         >
                           {topRadarData.map((entry, index) => {
@@ -324,6 +337,13 @@ export default function DrugDashboard() {
                         <Tooltip 
                           contentStyle={{ backgroundColor: '#0f1524', borderColor: '#1e293b', borderRadius: '12px', fontSize: '10px', fontWeight: 'bold' }}
                           itemStyle={{ color: '#fff' }}
+                        />
+                        <Legend 
+                           wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', color: '#94a3b8' }}
+                           layout="horizontal" 
+                           verticalAlign="bottom" 
+                           align="center" 
+                           iconType="circle"
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -344,7 +364,11 @@ export default function DrugDashboard() {
                <p className="text-[11px] text-slate-400 max-w-xl font-medium tracking-wide leading-relaxed mb-6">
                  Identify promising candidates automatically. Let the AI analyze your cohort and shortlist the top candidates with rationale and next steps.
                </p>
-               <button className="w-full max-w-md bg-[#0ea5e9] hover:bg-[#06b6d4] text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-colors shadow-lg shadow-cyan-500/20">
+               <button 
+                  onClick={() => handleAiAction('discovery_assistant')}
+                  disabled={aiLoading || !filteredData.length}
+                  className="w-full max-w-md bg-[#0ea5e9] hover:bg-[#06b6d4] text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-colors shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+               >
                  Discover Top Candidates
                </button>
             </div>
@@ -355,11 +379,41 @@ export default function DrugDashboard() {
                <p className="text-[11px] text-slate-400 max-w-xl font-medium tracking-wide leading-relaxed mb-6">
                  Want a deeper analysis? Let our AI expert analyze the entire cohort and suggest detailed next steps.
                </p>
-               <button className="w-full max-w-md bg-[#4f46e5] hover:bg-[#6366f1] text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-colors shadow-lg shadow-indigo-500/20">
+               <button 
+                  onClick={() => handleAiAction('strategic_summary')}
+                  disabled={aiLoading || !filteredData.length}
+                  className="w-full max-w-md bg-[#4f46e5] hover:bg-[#6366f1] text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-colors shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+               >
                  Generate AI Summary
                </button>
             </div>
           </div>
+
+          {/* AI Output Box */}
+          {(aiLoading || aiReport) && (
+            <div className="bg-[#111827] border border-indigo-500/30 rounded-2xl p-6 shadow-[0_0_30px_rgba(99,102,241,0.1)] relative overflow-hidden mt-2">
+              <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500/50"></div>
+              {aiLoading ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-4 text-indigo-400">
+                  <Activity className="w-8 h-8 animate-spin" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">AI is intensely analyzing cohort dataset...</span>
+                </div>
+              ) : (
+                <div className="flex flex-col">
+                  <h3 className="text-xs font-black text-white tracking-[0.2em] uppercase mb-4 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-indigo-400" />
+                    {aiReport.title}
+                  </h3>
+                  <div className="text-[12px] text-slate-300 font-medium leading-relaxed whitespace-pre-wrap bg-[#0a0f1c] p-6 rounded-xl border border-slate-800">
+                     {aiReport.content}
+                  </div>
+                  <button onClick={() => setAiReport(null)} className="mt-6 self-start px-4 py-2 bg-slate-800 hover:bg-slate-700 text-[10px] font-black uppercase tracking-widest text-slate-300 transition-colors rounded-lg flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" /> Clear Analysis Module
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Row 4: Grid */}
           <div className="bg-[#111827] border border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col space-y-6">

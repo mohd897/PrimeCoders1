@@ -59,6 +59,39 @@ const chatInteraction = async (req, res) => {
   }
 };
 
+const dashboardAiInteraction = async (req, res) => {
+  try {
+    const { actionType, dataPayload } = req.body;
+
+    if (!process.env.GEMINI_API_KEY) {
+       return res.json({ reply: `[MOCK AI] Processed ${actionType}. Please configure GEMINI_API_KEY inside backend/.env to enable full analysis.` });
+    }
+
+    let sysInstruction = "You are an expert bioinformatician analyzing drug candidate data.";
+    let promptText = "";
+
+    if (actionType === 'discovery_assistant') {
+      sysInstruction = "You are an AI Drug Discovery Assistant. Your goal is to analyze the provided JSON candidate data. Identify the top 2-3 most promising candidates based on explicitly high predicted efficacy and explicitly low predicted toxicity. Format your response elegantly using markdown, showing 'Top Candidates', why you chose them, and what 'Next Steps' should be taken. Keep it crisp, analytical, and professional.";
+      promptText = `Here is the filtered cohort data: ${JSON.stringify(dataPayload)}`;
+    } else if (actionType === 'strategic_summary') {
+      sysInstruction = "You are an AI Strategic Lead for a pharmaceutical cohort. Provide a comprehensive summary of the attached candidate cohort. Focus on trends (e.g. are viabilities generally high or low?), overall risk factors, outliers with extreme values, and give a summary recommendation. Be analytical and professional.";
+      promptText = `Please critically analyze this dataset: ${JSON.stringify(dataPayload)}`;
+    }
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [ { role: 'user', parts: [{ text: promptText }] } ],
+        config: { systemInstruction: sysInstruction }
+    });
+
+    res.json({ reply: response.text });
+  } catch (error) {
+    console.error('Dashboard AI error:', error);
+    res.status(500).json({ error: 'Failed to process dashboard request' });
+  }
+};
+
 module.exports = {
-  chatInteraction
+  chatInteraction,
+  dashboardAiInteraction
 };

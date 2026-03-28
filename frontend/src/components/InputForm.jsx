@@ -9,23 +9,30 @@ const InputForm = ({ formData, onChange }) => {
   return (
     <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
 
-      {/* Age */}
-      <div className="space-y-2 pb-2">
-        <div className="flex justify-between items-center mb-1">
-          <label className="block text-sm font-bold text-slate-300">Your Age</label>
-          <span className="text-xs font-bold px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded-md">
-            {formData.age} years
-          </span>
-        </div>
-        <div className="flex items-center gap-4">
+      {/* Patient Details */}
+      <div className="grid grid-cols-2 gap-4 pb-2">
+        <div className="space-y-2">
+          <label className="block text-sm font-bold text-slate-300">Patient Name</label>
           <input
-            type="range"
-            name="age"
-            min="10"
-            max="100"
-            value={formData.age}
+            type="text"
+            name="name"
+            value={formData.name || ''}
             onChange={handleChange}
-            className="w-full h-2.5 bg-slate-800 rounded-full appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all"
+            placeholder="e.g. John Doe"
+            className="w-full p-2.5 border border-slate-700 rounded-xl bg-[#0a0f1c] text-slate-200 font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm placeholder:text-slate-600"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="block text-sm font-bold text-slate-300">Age</label>
+          <input
+            type="number"
+            name="age"
+            value={formData.age || ''}
+            onChange={handleChange}
+            placeholder="Type age..."
+            min="1"
+            max="120"
+            className="w-full p-2.5 border border-slate-700 rounded-xl bg-[#0a0f1c] text-slate-200 font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm placeholder:text-slate-600"
           />
         </div>
       </div>
@@ -57,32 +64,7 @@ const InputForm = ({ formData, onChange }) => {
         </div>
       </div>
 
-      {/* Risk Tolerance */}
-      <div className="space-y-2">
-        <label className="block text-sm font-bold text-slate-300">Risk Tolerance</label>
-        <div className="grid grid-cols-3 gap-2">
-          {['low', 'medium', 'high'].map((level) => (
-            <label 
-              key={level} 
-              className={`flex items-center justify-center p-2.5 border rounded-xl cursor-pointer transition-all duration-200 ${
-                formData.riskTolerance === level 
-                  ? 'bg-indigo-600 border-indigo-500 text-white font-semibold shadow-lg shadow-indigo-500/20' 
-                  : 'bg-[#0a0f1c] border-slate-700 text-slate-400 font-medium hover:bg-slate-800 hover:border-slate-600'
-              }`}
-            >
-              <input
-                type="radio"
-                name="riskTolerance"
-                value={level}
-                checked={formData.riskTolerance === level}
-                onChange={handleChange}
-                className="hidden"
-              />
-              <span className="capitalize text-sm">{level}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+
 
       {/* Clinical Assessment */}
       <div className="space-y-4 pt-4 border-t border-slate-800 mt-6">

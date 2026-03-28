@@ -23,9 +23,9 @@ OmniGen AI - Diagnostic Simulation Report
 Generated: ${new Date().toLocaleString()}
 
 --- PATIENT INPUT SUMMARY ---
+Patient Name: ${formData.name || 'Anonymous'}
 Age: ${formData.age}
 Health Status: ${formData.health}
-Risk Tolerance: ${formData.riskTolerance}
 Reported Problem: ${formData.problem || 'None'}
 Duration: ${formData.duration}
 Symptoms: ${formData.symptoms || 'None detailed'}

@@ -93,9 +93,9 @@ function App() {
                    <div className="flex flex-col relative z-10">
                      <span className="text-[8px] sm:text-[9px] text-indigo-300/80 uppercase font-black tracking-widest mb-1 flex items-center gap-1">
                        <svg className="w-3 h-3 block sm:hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                       Profile
+                       {formData?.name || 'Patient'}
                      </span>
-                     <span className="text-white font-bold tracking-wide mt-0.5 text-[11px] sm:text-xs">Age {formData?.age}</span>
+                     <span className="text-white font-bold tracking-wide mt-0.5 text-[11px] sm:text-xs">Age {formData?.age || '?'}</span>
                    </div>
                    
                    <div className="w-px h-6 bg-slate-800/80 hidden sm:block relative z-10"></div>
@@ -103,13 +103,6 @@ function App() {
                    <div className="flex flex-col relative z-10">
                      <span className="text-[8px] sm:text-[9px] text-indigo-300/80 uppercase font-black tracking-widest mb-1">Health</span>
                      <span className="text-white font-bold capitalize tracking-wide mt-0.5 text-[11px] sm:text-xs">{formData?.health}</span>
-                   </div>
-                   
-                   <div className="w-px h-6 bg-slate-800/80 hidden sm:block relative z-10"></div>
-                   
-                   <div className="flex flex-col relative z-10">
-                     <span className="text-[8px] sm:text-[9px] text-indigo-300/80 uppercase font-black tracking-widest mb-1">Tolerance</span>
-                     <span className="text-white font-bold capitalize tracking-wide mt-0.5 text-[11px] sm:text-xs">{formData?.riskTolerance}</span>
                    </div>
                    
                    <div className="w-px h-6 bg-slate-800/80 hidden sm:block relative z-10"></div>
